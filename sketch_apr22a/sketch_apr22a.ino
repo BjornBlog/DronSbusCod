@@ -1,5 +1,6 @@
 #include "sbus.h" //https://github.com/bolderflight/sbus/tree/main
 #include "ibus.h" //https://thenerdyengineer.com/ibus-and-arduino/#Using_iBUS_with_an_Arduino
+
 /*
 ibus.channels[i] - value for channel i
 IBUS ibus(&Serial1, 115200); - starts serial rx on port 1 at 115200 baud, DONT USE OTHER IBUS IS AT THAT SPEED
@@ -56,7 +57,6 @@ void loop() {
   throttle = 885;
   killswitch = 1000;
   Arm(false);     
-  DataSetSend();
   if(millis() - stateChangeT0 > 10000) //sending init data for 10 seconds
   {
     stateChangeT0 = millis();
@@ -67,7 +67,6 @@ void loop() {
     compare = 100;
     //set arming signals
     Arm(true);
-    DataSetSend();
     if (millis() - stateChangeT0 > 10000){
       rampUpTime = millis();
       throttle = 900;
@@ -107,7 +106,6 @@ void loop() {
       throttle = 885;        
       killswitch = 1700;
     }
-    DataSetSend();
   } // end state 1
   if(state == 2)
   {
@@ -121,47 +119,7 @@ void loop() {
       killswitch = 1700;
       failsafe = 2000;
     }
-    DataSetSend();
-  }
-  Serial.println("Output");
-  for (int8_t i = 0; i < data.NUM_CH; i++){ //print data we're sending.
-      Serial.print(i);
-      Serial.print(": ");
-      if(data.ch[i] != 0)
-      {
-        Serial.println((.6251*(data.ch[i]))+879.7);
-      }
-      else
-      {
-        Serial.println(data.ch[i]);
-      }
-  } // close printing for
-  Serial.println("-----");
-  Serial.print("State is: ");
-  Serial.println(state);
-  /*
-  sbusInput = sbus_rx.data();
-  Serial.println("Input");
-  for(int i = 0; i < sbusInput.NUM_CH; i++)
-  {
-    Serial.print(i);
-    Serial.print(": ");
-    if(data.ch[i] != 0)
-    {
-      Serial.println((.6251*(sbusInput.ch[i]))+879.7);
-    }
-    else
-    {
-      Serial.println(sbusInput.ch[i]);
-    }
-    delay(100);
-  }
-  */
-  /* Display lost frames and failsafe data */
-  // Serial.print(data.lost_frame);
-  // Serial.print("\t");
-  // Serial.println(data.failsafe);
-  
+  }//end state 2
   if(state == -1 || state == 0){ //Light Blinker
     if(millis()- blinkTime >= compare){
       LightSRLatch();
@@ -174,8 +132,45 @@ void loop() {
   else{
     digitalWrite(LEDpin,HIGH);
   }
-  delay(100);  
+  delay(10);
+  DataSetSend();
+  PrintData();
+}//end Loop
+
+void PrintData()
+{
+  Serial.println("Output"); 
+  for (uint8_t i = 0; i < data.NUM_CH; i++){ //print data we're sending.
+    Serial.print(i);
+    Serial.print(": ");
+    if(data.ch[i] != 0)
+    {
+      Serial.println((.6251*(data.ch[i]))+879.7);
+    }
+    else
+    {
+      Serial.println(data.ch[i]);
+    }
+  } // close printing for
+  Serial.println("-----");
+  Serial.print("State is: ");
+  Serial.println(state);
+  Serial.println("Input");
+  for(uint8_t i = 0; i < sizeof(ibus.channels); i++)
+  {
+    Serial.print(i);
+    Serial.print(": ");
+    if(data.ch[i] != 0)
+    {
+      Serial.println(ibus.channels[i]);
+    }
+    else
+    {
+      Serial.println(ibus.channels[i]);
+    }
+  }
 }
+
 void Arm(bool armmed)
 {
   if(armmed)
@@ -187,10 +182,12 @@ void Arm(bool armmed)
     arming = 1000;
   }
 }
+
 double ChannelMath(int setpoint)
 {
   return((setpoint - 879.7)/.6251);
 }
+
 void LightSRLatch()
 {
   if(lightOn)
@@ -204,6 +201,7 @@ void LightSRLatch()
     lightOn = true;    
   }
 }
+
 void DataSetSend()
 {
   data.ch[0] = (ChannelMath(roll));
