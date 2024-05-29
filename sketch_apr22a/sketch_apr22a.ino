@@ -1,7 +1,15 @@
 #include "sbus.h" //https://github.com/bolderflight/sbus/tree/main
+#include "ibus.h" //https://thenerdyengineer.com/ibus-and-arduino/#Using_iBUS_with_an_Arduino
+/*
+ibus.channels[i] - value for channel i
+IBUS ibus(&Serial1, 115200); - starts serial rx on port 1 at 115200 baud, DONT USE OTHER IBUS IS AT THAT SPEED
+ibus.update(); - reads declared serial input
+*/
 
 /* SBUS object, writing SBUS */
 bfs::SbusTx sbus_tx(&Serial1);
+
+IBUS ibus(&Serial1, 115200);
 /* SBUS data */
 bfs::SbusData data;
 // int channelValues[] = {1500, 1500, 1500, 885, 1500, 1500, 1500};
@@ -11,7 +19,7 @@ int yaw;
 int throttle;
 int arming;
 bool enabled = false;
-long t = 0;
+long stateChangeT0 = 0;
 long blinkTime = 0;
 int state = -1;  
 int killswitch = 1000;
@@ -21,14 +29,16 @@ int compare = 1000;
 bool lightOn = false;
 int rampUpTime = 0;
 /*
-0: arming state
-1: sending signals
+-1: Boot State
+0: Arming state
+1: Control State
+2: Test State
 */
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   while (!Serial) {}
-  t = millis();  
+  stateChangeT0 = millis();  
   blinkTime = millis();
   /* Begin the SBUS communication */
   sbus_tx.Begin();
@@ -40,15 +50,16 @@ void setup() {
 }
 
 void loop() {
+  ibus.update();
   if (state == -1){
   compare = 1000;       
   throttle = 885;
   killswitch = 1000;
   Arm(false);     
   DataSetSend();
-  if(millis() - t > 10000) //sending init data for 10 seconds
+  if(millis() - stateChangeT0 > 10000) //sending init data for 10 seconds
   {
-    t = millis();
+    stateChangeT0 = millis();
     state = 0; //it's time to arm
   }
   }
@@ -57,16 +68,16 @@ void loop() {
     //set arming signals
     Arm(true);
     DataSetSend();
-    if (millis() - t > 10000){
+    if (millis() - stateChangeT0 > 10000){
       rampUpTime = millis();
       throttle = 900;
       state = 2; // 1 is intstant, 2 is slow incraments of 50
-      t = millis();
+      stateChangeT0 = millis();
     }
   }
   else if (state == 1){
     //Roll Ch 0, Pitch Ch 1, Yaw Ch 3, Throttle Ch 2, Arm Ch 4
-    if(millis() - t < 3000)
+    if(millis() - stateChangeT0 < 3000)
     {
       roll = 1500;
       pitch = 1500;
@@ -74,7 +85,7 @@ void loop() {
       throttle = 1250;
       killswitch = 1000;
     }  
-    else if(millis() - t < 6000)
+    else if(millis() - stateChangeT0 < 6000)
     {    
       roll = 1500;
       pitch = 1500;
@@ -82,7 +93,7 @@ void loop() {
       throttle = 1350;
       killswitch = 1000;
     }
-    else if(millis() - t < 9000){
+    else if(millis() - stateChangeT0 < 9000){
       roll = 1500;
       pitch = 1500;
       yaw = 1500;
