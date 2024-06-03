@@ -1,0 +1,5 @@
+{
+    "board": "arduino:samd:nano_33_iot",
+    "sketch": "sketch_apr22a/sketch_apr22a.ino",
+    "port": "/dev/tty.usbmodem141301"
+}

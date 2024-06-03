@@ -1,5 +1,5 @@
-#include "sbus.h" //https://github.com/bolderflight/sbus/tree/main
-#include "ibus.h" //https://thenerdyengineer.com/ibus-and-arduino/#Using_iBUS_with_an_Arduino
+#include <sbus.h> //https://github.com/bolderflight/sbus/tree/main
+#include <ibus.h> //https://thenerdyengineer.com/ibus-and-arduino/#Using_iBUS_with_an_Arduino
 
 /*
 ibus.channels[i] - value for channel i
